@@ -1,12 +1,14 @@
 use rand::distr::{Alphanumeric, SampleString};
 
-const SAMPLE_LENGTH: usize = 16;
-
+const SAMPLE_LENGTH: usize = 8;
 
 pub(crate) fn generate_unique_key(prefix: &str) -> String {
-    format!("{}/{}", prefix, Alphanumeric.sample_string(&mut rand::rng(), SAMPLE_LENGTH))
+    format!(
+        "{}/{}",
+        prefix,
+        Alphanumeric.sample_string(&mut rand::rng(), SAMPLE_LENGTH)
+    )
 }
-
 
 #[cfg(test)]
 mod tests {

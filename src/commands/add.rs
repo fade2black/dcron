@@ -1,6 +1,9 @@
 use crate::cron_utils;
+use crate::etcd_service::Client;
+use crate::utils::generate_unique_key;
 use serde::{Deserialize, Serialize};
 use std::error::Error;
+use tracing::info;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct AddRequest {
@@ -14,18 +17,28 @@ pub struct AddResponse {
     pub command: String,
 }
 
-pub fn add(expression: &str) -> Result<AddResponse, Box<dyn Error>> {
+pub async fn add(expression: &str) -> Result<AddResponse, Box<dyn Error>> {
     let cron = cron_utils::CronEntry::new(expression)?;
-
-    //TODO: implement actual add
-    // 1. lock
-    // 2. generate a unique key
-    // 3. add a new key/val to the crontab
-    // 4. add the next fire-time to the jobs
-    // 5. unlock
-    Ok(AddResponse {
+    let resp = AddResponse {
         pattern: cron.pattern(),
         next: cron.next_occurrence()?.to_string(),
         command: cron.command,
-    })
+    };
+
+    let json_str = serde_json::to_string(&resp)?;
+    info!("Adding to etcd {json_str}");
+    create_cron_job(&json_str).await?;
+
+    Ok(resp)
+}
+
+async fn create_cron_job(json_str: &str) -> Result<(), Box<dyn Error>> {
+    let mut client = Client::new().await?;
+
+    let lock_key = client.lock().await?;
+    let key = generate_unique_key("cron");
+    client.store_cron_job(&key, json_str).await?;
+    client.unlock(&lock_key).await?;
+
+    Ok(())
 }
