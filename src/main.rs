@@ -1,18 +1,12 @@
-use axum::{routing::{get, post}, Json, Router};
-use dcron::cron_utils;
-use tracing::info;
-use serde::{Deserialize, Serialize};
+use axum::{
+    routing::{get, post},
+    Json, Router,
+};
+use dcron::commands::{self, AddRequest, AddResponse};
+use std::error::Error;
 
-#[derive(Serialize, Deserialize, Debug)]
-struct AddRequest {
-    expression: String,
-}
-#[derive(Serialize, Deserialize, Debug)]
-struct AddResponse {
-    pattern: String,
-    next: String,
-    command: String
-}
+use serde::{Deserialize, Serialize};
+use tracing::info;
 
 #[derive(Serialize, Deserialize, Debug)]
 struct Job(String);
@@ -20,32 +14,30 @@ struct Job(String);
 struct JobList(Vec<Job>);
 
 #[tokio::main]
-async fn main() {
+async fn main() -> Result<(), Box<dyn Error>> {
     tracing_subscriber::fmt::init();
 
     let app = Router::new()
         .route("/up", get(|| async { "OK" }))
-        .route("/list", get(list))
-        .route("/add", post(add));
-    
-        let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
-        info!("Starting server...");
-        axum::serve(listener, app).await.unwrap();
+        .route("/list", get(list_action))
+        .route("/add", post(add_action));
+
+    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
+    info!("Starting server...");
+    axum::serve(listener, app).await?;
+    info!("Terminating...");
+
+    Ok(())
 }
 
-async fn list() -> Json<JobList> {
+async fn list_action() -> Json<JobList> {
     info!("Request: List Jobs");
     Json(JobList(vec![Job("Job1".into()), Job("Job2".into())]))
 }
 
-async fn add(Json(body): Json<AddRequest>) -> Json<AddResponse> {
+async fn add_action(Json(body): Json<AddRequest>) -> Json<AddResponse> {
     info!("Request: add, payload = {}", body.expression);
-    let cron = cron_utils::CronEntry::new(&body.expression).unwrap();
 
-    let response = AddResponse {
-        pattern: cron.pattern(),
-        next: cron.next_occurrence().unwrap().to_string(),
-        command: cron.command,
-    };
+    let response = commands::add(&body.expression).unwrap();
     Json(response)
 }

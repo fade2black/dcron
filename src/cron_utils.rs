@@ -1,11 +1,10 @@
-use std::error::Error;
-
-use croner::{errors::CronError, Cron};
 use chrono::{DateTime, Local};
+use croner::{errors::CronError, Cron};
+use std::error::Error;
 
 pub struct CronEntry {
     cron: Cron,
-    pub command: String   
+    pub command: String,
 }
 
 impl CronEntry {
@@ -13,7 +12,7 @@ impl CronEntry {
         let fields: Vec<&str> = line.split_whitespace().collect();
         Ok(CronEntry {
             cron: Cron::new(&fields[0..5].join(" ")).parse()?,
-            command: fields[5..].join(" ")
+            command: fields[5..].join(" "),
         })
     }
 
