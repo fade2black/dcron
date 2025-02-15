@@ -1,9 +1,9 @@
 use crate::cron_utils;
 use crate::etcd_service::Client;
+use rand::distr::{Alphanumeric, SampleString};
 use serde::{Deserialize, Serialize};
 use std::error::Error;
 use tracing::info;
-use rand::distr::{Alphanumeric, SampleString};
 
 const SAMPLE_LENGTH: usize = 8;
 
@@ -52,7 +52,6 @@ pub fn generate_unique_key(prefix: &str) -> String {
         Alphanumeric.sample_string(&mut rand::rng(), SAMPLE_LENGTH)
     )
 }
-
 
 #[cfg(test)]
 mod tests {

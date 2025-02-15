@@ -1,5 +1,8 @@
 use axum::{
-    extract::Path, http::StatusCode, response::IntoResponse, routing::{delete, get, post}, Json, Router
+    extract::Path,
+    http::StatusCode,
+    routing::{delete, get, post},
+    Json, Router,
 };
 use dcron::commands::{self, AddRequest, AddResponse, ListResponse};
 use std::error::Error;
@@ -36,7 +39,7 @@ async fn add_action(Json(body): Json<AddRequest>) -> Json<AddResponse> {
     Json(response)
 }
 
-async fn delete_action(Path(key) : Path<String>) -> StatusCode {
+async fn delete_action(Path(key): Path<String>) -> StatusCode {
     info!("Request: delete, key = {}", key);
 
     commands::delete(&key).await.unwrap();

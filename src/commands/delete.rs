@@ -1,5 +1,5 @@
-use std::error::Error;
 use crate::etcd_service::Client;
+use std::error::Error;
 
 pub async fn delete(key: &str) -> Result<(), Box<dyn Error>> {
     let mut client = Client::new().await?;
