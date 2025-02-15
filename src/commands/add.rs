@@ -1,9 +1,11 @@
 use crate::cron_utils;
 use crate::etcd_service::Client;
-use crate::utils::generate_unique_key;
 use serde::{Deserialize, Serialize};
 use std::error::Error;
 use tracing::info;
+use rand::distr::{Alphanumeric, SampleString};
+
+const SAMPLE_LENGTH: usize = 8;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct AddRequest {
@@ -41,4 +43,29 @@ async fn create_cron_job(json_str: &str) -> Result<(), Box<dyn Error>> {
     client.unlock(&lock_key).await?;
 
     Ok(())
+}
+
+pub fn generate_unique_key(prefix: &str) -> String {
+    format!(
+        "{}/{}",
+        prefix,
+        Alphanumeric.sample_string(&mut rand::rng(), SAMPLE_LENGTH)
+    )
+}
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_generate_unique_key() {
+        let prefix = "cron";
+
+        let key = generate_unique_key(prefix);
+        let parts: Vec<&str> = key.split("/").collect();
+        assert_eq!(parts.len(), 2);
+        assert_eq!(parts[0], prefix);
+        assert_eq!(parts[1].len(), SAMPLE_LENGTH);
+    }
 }

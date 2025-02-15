@@ -49,4 +49,9 @@ impl Client {
 
         Ok(jobs)
     }
+
+    pub async fn delete_cron_job(&mut self, key: &str) -> Result<(), Box<dyn Error>>{
+        self.0.delete(key, None).await?;
+        Ok(())
+    }
 }
