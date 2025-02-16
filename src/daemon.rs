@@ -7,7 +7,7 @@ use tracing::info;
 
 const SLEEP_TIME: u64 = 3;
 
-pub async fn watch() -> Result<(), Box<dyn Error>> {
+pub async fn monitor() -> Result<(), Box<dyn Error>> {
     let mut client = Client::new().await?;
 
     loop {

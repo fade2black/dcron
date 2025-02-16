@@ -15,7 +15,7 @@ use tracing::{error, info};
 async fn main() -> Result<(), Box<dyn Error>> {
     tracing_subscriber::fmt::init();
 
-    let result = tokio::try_join!(daemon::watch(), run_http_server());
+    let result = tokio::try_join!(daemon::monitor(), run_http_server());
 
     if let Err(err) = result {
         error!("{err}");
@@ -29,11 +29,11 @@ async fn main() -> Result<(), Box<dyn Error>> {
 async fn run_http_server() -> Result<(), Box<dyn Error>> {
     let app = Router::new()
         .route("/up", get(|| async { "OK" }))
-        .route("/list", get(list_action))
-        .route("/add", post(add_action))
-        .route("/{key}", delete(delete_action));
+        .route("/jobs", get(list_action))
+        .route("/jobs", post(add_action))
+        .route("/jobs/{key}", delete(delete_action));
 
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:3001").await?;
+    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await?;
 
     info!("Starting server...");
     axum::serve(listener, app).await?;
