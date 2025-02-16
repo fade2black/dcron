@@ -1,28 +1,48 @@
 use chrono::{DateTime, Local};
 use croner::{errors::CronError, Cron};
+use serde::{Deserialize, Serialize};
 use std::error::Error;
 
+#[derive(Serialize, Deserialize, Debug)]
 pub struct CronEntry {
-    cron: Cron,
+    pub pattern: String,
     pub command: String,
 }
 
+#[derive(Serialize, Deserialize, Debug)]
+pub struct CronEntryWithNext {
+    pub pattern: String,
+    pub next: String,
+    pub command: String,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct CronKeyVal {
+    pub key: String,
+    pub value: CronEntryWithNext,
+}
+
 impl CronEntry {
-    pub fn new(line: &str) -> Result<Self, Box<dyn Error>> {
-        let fields: Vec<&str> = line.split_whitespace().collect();
+    pub fn new(expression: &str) -> Result<Self, Box<dyn Error>> {
+        let fields: Vec<&str> = expression.split_whitespace().collect();
+
         Ok(CronEntry {
-            cron: Cron::new(&fields[0..5].join(" ")).parse()?,
+            pattern: fields[0..5].join(" "),
             command: fields[5..].join(" "),
         })
     }
 
     pub fn next_occurrence(&self) -> Result<DateTime<Local>, CronError> {
-        let time = Local::now();
-        self.cron.find_next_occurrence(&time, false)
+        let cron = Cron::new(&self.pattern).parse()?;
+        cron.find_next_occurrence(&Local::now(), false)
     }
 
-    pub fn pattern(&self) -> String {
-        self.cron.pattern.to_string()
+    pub fn to_entry_with_next(&self) -> Result<CronEntryWithNext, Box<dyn Error>> {
+        Ok(CronEntryWithNext {
+            pattern: self.pattern.clone(),
+            command: self.command.clone(),
+            next: self.next_occurrence()?.to_string(),
+        })
     }
 }
 
@@ -35,7 +55,7 @@ mod tests {
         let line = "0 */3 * * * /bin/foobar";
 
         let entry = CronEntry::new(line).unwrap();
-        assert_eq!(entry.pattern(), "0 */3 * * *");
+        assert_eq!(entry.pattern, "0 */3 * * *");
         assert_eq!(entry.command, "/bin/foobar");
     }
 
@@ -44,7 +64,7 @@ mod tests {
         let line = "*/15 * * * * /bin/foobar -a A -bee=B -see=C";
 
         let entry = CronEntry::new(line).unwrap();
-        assert_eq!(entry.pattern(), "*/15 * * * *");
+        assert_eq!(entry.pattern, "*/15 * * * *");
         assert_eq!(entry.command, "/bin/foobar -a A -bee=B -see=C");
     }
 
@@ -53,7 +73,7 @@ mod tests {
         let line = "0 0 * * 0 ABC=abc /bin/foobar";
 
         let entry = CronEntry::new(line).unwrap();
-        assert_eq!(entry.pattern(), "0 0 * * 0");
+        assert_eq!(entry.pattern, "0 0 * * 0");
         assert_eq!(entry.command, "ABC=abc /bin/foobar");
     }
 
@@ -62,7 +82,7 @@ mod tests {
         let line = "0 0 * * 1-5 echo hello world";
 
         let entry = CronEntry::new(line).unwrap();
-        assert_eq!(entry.pattern(), "0 0 * * 1-5");
+        assert_eq!(entry.pattern, "0 0 * * 1-5");
         assert_eq!(entry.command, "echo hello world");
     }
 }
