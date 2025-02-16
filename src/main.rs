@@ -33,7 +33,7 @@ async fn run_http_server() -> Result<(), Box<dyn Error>> {
         .route("/add", post(add_action))
         .route("/{key}", delete(delete_action));
 
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:3002").await?;
+    let listener = tokio::net::TcpListener::bind("0.0.0.0:3001").await?;
 
     info!("Starting server...");
     axum::serve(listener, app).await?;

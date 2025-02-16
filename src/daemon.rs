@@ -1,7 +1,7 @@
 use crate::{etcd_service::Client, CronEntryWithNext};
 use chrono::{DateTime, Local};
 use croner::Cron;
-use std::error::Error;
+use std::{error::Error, process::Command};
 use tokio::time;
 use tracing::info;
 
@@ -27,9 +27,10 @@ async fn process(client: &mut Client, key: &str, val: &str) -> Result<(), Box<dy
     let mut entry: CronEntryWithNext = serde_json::from_str(val)?;
     let time = DateTime::parse_from_str(&entry.next, "%Y-%m-%d %H:%M:%S %:z")?;
 
-    //info!("{:?}, {}", entry, time);
     if time <= Local::now() {
-        info!("Firing \"{}\"", entry.command);
+        info!("Running \"{}\"", entry.command);
+
+        run_command(&entry.command)?;
 
         let cron = Cron::new(&entry.pattern).parse()?;
         let next = cron.find_next_occurrence(&Local::now(), false)?;
@@ -39,6 +40,15 @@ async fn process(client: &mut Client, key: &str, val: &str) -> Result<(), Box<dy
             .store_cron_job(key, &serde_json::to_string(&entry)?)
             .await?;
     }
+
+    Ok(())
+}
+
+fn run_command(cmd: &str) -> Result<(), Box<dyn Error>>{
+    Command::new("sh")
+        .arg("-c") 
+        .arg(cmd)
+        .spawn()?;
 
     Ok(())
 }
